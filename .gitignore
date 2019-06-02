@@ -1,0 +1,11 @@
+# Python 
+*.pyc
+
+# Build
+build/
+dist/
+fhirtools.egg-info/
+venv/
+
+# IDE
+.idea/
