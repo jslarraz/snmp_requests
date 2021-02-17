@@ -100,13 +100,40 @@ class snmp_requests():
         self.transport = UdpTransportTarget((ip_addr, port))
 
 
-    def snmpget(self, varBinds):
+    def parse_varBinds(self, varBinds):
 
         v = []
         for varBind in varBinds:
-            v.append(ObjectType(ObjectIdentity(varBind[0])))
 
-        iterator = getCmd(SnmpEngine(), self.security, self.transport, ContextData(), *v)
+            if varBind[1] == None:
+                v.append(ObjectType(ObjectIdentity(varBind[0])))
+
+            else:
+                if varBind[1][0] == "INTEGER":
+                    v.append((ObjectIdentifier(varBind[0]),
+                                     Integer(int(varBind[1][1]))))
+                elif varBind[1][0] == "Timeticks":
+                    v.append((ObjectIdentifier(varBind[0]),
+                                     TimeTicks(int(varBind[1][1]))))
+                elif varBind[1][0] == "Counter32":
+                    v.append((ObjectIdentifier(varBind[0]),
+                                     Counter32(int(varBind[1][1]))))
+                elif varBind[1][0] == "OctetString":
+                    v.append((ObjectIdentifier(varBind[0]),
+                                     OctetString(str(varBind[1][1]))))
+                elif varBind[1][0] == "OID":
+                    v.append((ObjectIdentifier(varBind[0]),
+                                     ObjectIdentifier(str(varBind[1][1]))))
+                else:
+                    v.append((ObjectIdentifier(varBind[0]),
+                                     OctetString(str(varBind[1][1]))))
+        return v
+
+
+    def snmpget(self, varBinds):
+
+        varBinds = self.parse_varBinds(varBinds)
+        iterator = getCmd(SnmpEngine(), self.security, self.transport, ContextData(), *varBinds)
 
         errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
         resp = response(errorIndication, errorStatus, errorIndex, varBinds)
@@ -115,11 +142,8 @@ class snmp_requests():
 
     def snmpgetnext(self, varBinds):
 
-        v = []
-        for varBind in varBinds:
-            v.append(ObjectType(ObjectIdentity(varBind[0])))
-
-        iterator = nextCmd(SnmpEngine(), self.security, self.transport, ContextData(), *v)
+        varBinds = self.parse_varBinds(varBinds)
+        iterator = nextCmd(SnmpEngine(), self.security, self.transport, ContextData(), *varBinds)
 
         errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
         resp = response(errorIndication, errorStatus, errorIndex, varBinds)
@@ -128,11 +152,8 @@ class snmp_requests():
 
     def snmpset(self, varBinds):
 
-        v = []
-        for varBind in varBinds:
-            v.append(ObjectType(ObjectIdentity(varBind[0]), (varBind[1])))
-
-        iterator = setCmd(SnmpEngine(), self.security, self.transport, ContextData(), *v)
+        varBinds = self.parse_varBinds(varBinds)
+        iterator = setCmd(SnmpEngine(), self.security, self.transport, ContextData(), *varBinds)
 
         errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
         resp = response(errorIndication, errorStatus, errorIndex, varBinds)
