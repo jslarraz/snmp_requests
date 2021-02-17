@@ -1,9 +1,7 @@
 
-
-
-
-from pysnmp.hlapi.asyncore import *
+from pysnmp.hlapi import *
 import re
+
 
 class response (object):
 
@@ -25,154 +23,124 @@ class response (object):
                 print(tools().var_type(varBind[1]) + ' : ' + str(varBind[1]))
 
 
+def get_alg(alg):
+
+    # Available authentication protocols
+    if alg == "usmHMACMD5AuthProtocol":
+        return usmHMACMD5AuthProtocol
+    elif alg == "usmHMACSHAAuthProtocol":
+        return usmHMACSHAAuthProtocol
+    elif alg == "usmHMAC128SHA224AuthProtocol":
+        return usmHMAC128SHA224AuthProtocol
+    elif alg == "usmHMAC192SHA256AuthProtocol":
+        return usmHMAC192SHA256AuthProtocol
+    elif alg == "usmHMAC256SHA384AuthProtocol":
+        return usmHMAC256SHA384AuthProtocol
+    elif alg == "usmHMAC384SHA512AuthProtocol":
+        return usmHMAC384SHA512AuthProtocol
+    elif alg == "usmNoAuthProtocol":
+        return usmNoAuthProtocol
+
+
+
+    #Available privacy protocols
+    elif alg == "usmDESPrivProtocol":
+        return usmDESPrivProtocol
+    elif alg == "usm3DESEDEPrivProtocol":
+        return usm3DESEDEPrivProtocol
+    elif alg == "usmAesCfb128Protocol":
+        return usmAesCfb128Protocol
+    elif alg == "usmAesCfb192Protocol":
+        return usmAesCfb192Protocol
+    elif alg == "usmAesCfb256Protocol":
+        return usmAesCfb256Protocol
+    elif alg == "usmNoPrivProtocol":
+        return usmNoPrivProtocol
+
+    else:
+        print("Unsupported algorithm")
+        return None
+
+
+
+
+
 
 class snmp_requests():
 
-    def __init__(self, version, community, ip_addr, port):
-        self.version = version
-        self.community = community
-        self.ip_addr = ip_addr
-        self.port = port
-        self.response = response('Only v1 and v2c supported', 0, 0, [])
+    def __init__(self, version, security, ip_addr, port):
 
-    def cbFun_get_set(self, snmpEngine, sendRequestHandle, errorIndication, errorStatus, errorIndex, varBinds, cbCtx):
-        self.response = response(errorIndication, errorStatus, errorIndex, varBinds)
+        if (version == 'v1'):
+            self.security = CommunityData(security, mpModel=0)
 
-    def cbFun_next(self, snmpEngine, sendRequestHandle, errorIndication, errorStatus, errorIndex, varBinds, cbCtx):
-        if len(varBinds) > 0:
-            varBinds = varBinds[0]
-        self.response = response(errorIndication, errorStatus, errorIndex, varBinds)
+        elif (version == 'v2c'):
+            self.security = CommunityData(security)
 
-    def cbFun_bulk(self, snmpEngine, sendRequestHandle, errorIndication, errorStatus, errorIndex, varBinds, cbCtx):
-        # Formato de varBinds, suponiendo nonRepeaters=1 y maxRepetitions=3, para dos varBinds en el requests
-        # Para aquellso correspondientes al nonRepeaters, aparece maxRepetitiones veces el mismo varBind
-        # [ [resp 1.1, resp 2.1], [resp 1.1, resp 2.2], [resp 1.1, resp 2.3] ]
-        # Donde resp 1.1 es la respuesta al primer varBind del request (en este caso solo un varBinds por ser nonRepeaters)
-        # Donde resp 2.1,2.2,2.3 son las maxRepetitions varBinds correspondientes a las siguientes varBinds del request
+        elif (version == 'v3'):
 
-        # Formato de aux
-        # [ [resp1.1], [resp 2.1, resp 2.2, resp 2.3] ]
-        aux = []
-        for i in range(len(varBinds)):
-            varBind = varBinds[i]
-            for j in range(len(varBind)):
-                if i == 0:
-                    aux.append([])
-                if (len(aux[j]) == 0) or (aux[j][0][0] != varBind[j][0]):
-                    aux[j].append(varBind[j])
+            if not(False in [(key in security.keys()) for key in ['username', 'authKey', 'authAlg', 'privKey', 'privAlg']]):
+                self.security = UsmUserData(security['username'], security['authKey'], security['privKey'],
+                            authProtocol=get_alg(security['authAlg']),
+                            privProtocol=get_alg(security['privAlg']))
+            elif not(False in [(key in security.keys()) for key in ['username', 'authKey', 'authAlg', 'privKey']]):
+                self.security = UsmUserData(security['username'], security['authKey'], security['privKey'],
+                                            authProtocol=get_alg(security['authAlg']))
+            elif not(False in [(key in security.keys()) for key in ['username', 'authKey', 'privKey', 'privAlg']]):
+                self.security = UsmUserData(security['username'], security['authKey'], security['privKey'],
+                                            privProtocol=get_alg(security['privAlg']))
+            elif not(False in [(key in security.keys()) for key in ['username', 'authKey', 'authAlg']]):
+                self.security = UsmUserData(security['username'], security['authKey'], security['privKey'])
+            elif not(False in [(key in security.keys()) for key in ['username', 'authKey']]):
+                self.security = UsmUserData(security['username'], security['authKey'])
+            elif not(False in [(key in security.keys()) for key in ['username']]):
+                self.security = UsmUserData(security['username'])
+            else:
+                print("not supported config")
 
-        aux2 = []
-        for a in aux:
-            for b in a:
-                aux2.append(b)
-
-        self.response = response(errorIndication, errorStatus, errorIndex, aux2)
+        self.transport = UdpTransportTarget((ip_addr, port))
 
 
-    def snmpget(self, varbinds):
+    def snmpget(self, varBinds):
 
-        snmpEngine = SnmpEngine()
-        if self.version == 'v1':
-            getCmd(snmpEngine,
-                   CommunityData(self.community, mpModel=0),
-                   UdpTransportTarget((self.ip_addr, self.port)),
-                   ContextData(),
-                   *varbinds,
-                   cbFun=self.cbFun_get_set
-                  )
+        v = []
+        for varBind in varBinds:
+            v.append(ObjectType(ObjectIdentity(varBind[0])))
 
-        elif self.version == 'v2c':
-            getCmd(snmpEngine,
-                   CommunityData(self.community),
-                   UdpTransportTarget((self.ip_addr, self.port)),
-                   ContextData(),
-                   *varbinds,
-                   cbFun=self.cbFun_get_set
-                  )
+        iterator = getCmd(SnmpEngine(), self.security, self.transport, ContextData(), *v)
 
-        else:
-            return self.response
-
-        snmpEngine.transportDispatcher.runDispatcher()
-        return self.response
+        errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
+        resp = response(errorIndication, errorStatus, errorIndex, varBinds)
+        return resp
 
 
+    def snmpgetnext(self, varBinds):
 
-    def snmpgetnext(self, varbinds):
+        v = []
+        for varBind in varBinds:
+            v.append(ObjectType(ObjectIdentity(varBind[0])))
 
-        snmpEngine = SnmpEngine()
-        if self.version == 'v1':
-            nextCmd(snmpEngine,
-                   CommunityData(self.community, mpModel=0),
-                   UdpTransportTarget((self.ip_addr, self.port)),
-                   ContextData(),
-                   *varbinds,
-                   cbFun=self.cbFun_next
-                  )
+        iterator = nextCmd(SnmpEngine(), self.security, self.transport, ContextData(), *v)
 
-        elif self.version == 'v2c':
-            nextCmd(snmpEngine,
-                   CommunityData(self.community),
-                   UdpTransportTarget((self.ip_addr, self.port)),
-                   ContextData(),
-                   *varbinds,
-                   cbFun=self.cbFun_next
-                  )
-
-        else:
-            return self.response
-
-        snmpEngine.transportDispatcher.runDispatcher()
-        return self.response
+        errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
+        resp = response(errorIndication, errorStatus, errorIndex, varBinds)
+        return resp
 
 
+    def snmpset(self, varBinds):
 
-    def snmpset(self, varbinds):
+        v = []
+        for varBind in varBinds:
+            v.append(ObjectType(ObjectIdentity(varBind[0]), (varBind[1])))
 
-        snmpEngine = SnmpEngine()
-        if self.version == 'v1':
-            setCmd(snmpEngine,
-                   CommunityData(self.community, mpModel=0),
-                   UdpTransportTarget((self.ip_addr, self.port)),
-                   ContextData(),
-                   *varbinds,
-                   cbFun=self.cbFun_get_set
-                  )
+        iterator = setCmd(SnmpEngine(), self.security, self.transport, ContextData(), *v)
 
-        elif self.version == 'v2c':
-            setCmd(snmpEngine,
-                   CommunityData(self.community),
-                   UdpTransportTarget((self.ip_addr, self.port)),
-                   ContextData(),
-                   *varbinds,
-                   cbFun=self.cbFun_get_set
-                  )
-
-        else:
-            return self.response
-
-        snmpEngine.transportDispatcher.runDispatcher()
-        return self.response
+        errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
+        resp = response(errorIndication, errorStatus, errorIndex, varBinds)
+        return resp
 
 
     def snmpbulk(self, nonRepeaters, maxRepetitions, varbinds):
-
-        snmpEngine = SnmpEngine()
-        if self.version == 'v2c':
-            bulkCmd(snmpEngine,
-                   CommunityData(self.community),
-                   UdpTransportTarget((self.ip_addr, self.port)),
-                   ContextData(),
-                   nonRepeaters, maxRepetitions,
-                   *varbinds,
-                   cbFun=self.cbFun_bulk
-                  )
-
-        else:
-            return self.response
-
-        snmpEngine.transportDispatcher.runDispatcher()
-        return self.response
+        pass
 
 
     # def snmpwalk(self, oid):
@@ -205,21 +173,6 @@ class tools():
 
 
 
-def print_response(response):
-
-    # Antes de imprimir los resultados por pantalla comprobamos que no hay errores
-    # En caso de que los hubiera imprimo el tipo y el error
-
-    if response.errorIndication:
-        print('errorIndication')
-        print(response.errorIndication)
-    elif response.errorStatus:
-        print('errorStatus')
-        print(response.errorStatus)
-    else:
-        for varBind in response.varBinds:
-            print(tools().var_type(varBind[0]) + ' : ' + str(varBind[0]))
-            print(tools().var_type(varBind[1]) + ' : ' + str(varBind[1]))
 
 
 

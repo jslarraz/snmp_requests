@@ -17,6 +17,6 @@ setup(
   ],
 
   #download_url = 'https://github.com/jslarraz/fhirtools/tarball/0.1',
-  keywords = ['fhir', 'development'],
+  keywords = ['snmp', 'development'],
   classifiers = [],
 )
