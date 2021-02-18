@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 setup(
   name = 'snmp_requests',
-  version='0.0.2',
+  version='0.0.3',
   description = 'SNMP library developed for Network Management classes at University of Zaragoza. This library has been developed with teaching purposes and is based on pysnmp library.',
   author = 'Jorge Sancho',
   author_email = 'jslarraz@gmail.com',

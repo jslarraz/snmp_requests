@@ -1,9 +1,6 @@
 
-#from pysnmp.hlapi import *
-from pysnmp.hlapi.auth import *
-from pysnmp.hlapi.asyncore.cmdgen import *
-from pysnmp.hlapi.asyncore.transport import *
 from pysnmp.hlapi import *
+from pysnmp.smi import exval
 import re
 
 
@@ -64,7 +61,6 @@ def get_alg(alg):
     else:
         print("Unsupported algorithm")
         return None
-
 
 
 
@@ -138,7 +134,6 @@ class snmp_engine():
 
         varBinds = self.parse_varBinds(varBinds)
         iterator = getCmd(SnmpEngine(), self.security, self.transport, ContextData(), *varBinds)
-
         errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
         resp = response(errorIndication, errorStatus, errorIndex, varBinds)
         return resp
@@ -148,10 +143,12 @@ class snmp_engine():
 
         varBinds = self.parse_varBinds(varBinds)
         iterator = nextCmd(SnmpEngine(), self.security, self.transport, ContextData(), *varBinds)
-
-        errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
-        resp = response(errorIndication, errorStatus, errorIndex, varBinds)
-
+        try:
+            errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
+            resp = response(errorIndication, errorStatus, errorIndex, varBinds)
+        except StopIteration:
+            varBinds = [(ObjectIdentifier(varBinds[0][0]), exval.endOfMibView)]
+            resp = response(0, 0, 0, varBinds)
         return resp
 
 
@@ -159,7 +156,6 @@ class snmp_engine():
 
         varBinds = self.parse_varBinds(varBinds)
         iterator = setCmd(SnmpEngine(), self.security, self.transport, ContextData(), *varBinds)
-
         errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
         resp = response(errorIndication, errorStatus, errorIndex, varBinds)
         return resp
@@ -169,7 +165,6 @@ class snmp_engine():
 
         varBinds = self.parse_varBinds(varBinds)
         iterator = bulkCmd(SnmpEngine(), self.security, self.transport, ContextData(), nonRepeaters, maxRepetitions *varBinds)
-
         errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
         resp = response(errorIndication, errorStatus, errorIndex, varBinds)
         return resp
@@ -181,11 +176,11 @@ class snmp_engine():
         varBinds = self.parse_varBinds(varBinds)
         iterator = nextCmd(SnmpEngine(), self.security, self.transport, ContextData(), *varBinds)
 
+        r = []
         for errorIndication, errorStatus, errorIndex, varBinds in iterator:
+            r.append(varBinds[0])
 
-            resp = response(errorIndication, errorStatus, errorIndex, varBinds)
-            resp.pretty_print()
-
+        return r
 
 
 class tools():
@@ -197,10 +192,4 @@ class tools():
             return ss
         else:
             return ss.rsplit('.', 1)[-1]
-
-
-
-
-
-
 
