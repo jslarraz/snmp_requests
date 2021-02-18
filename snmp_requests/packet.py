@@ -1,4 +1,8 @@
 
+#from pysnmp.hlapi import *
+from pysnmp.hlapi.auth import *
+from pysnmp.hlapi.asyncore.cmdgen import *
+from pysnmp.hlapi.asyncore.transport import *
 from pysnmp.hlapi import *
 import re
 
@@ -66,7 +70,7 @@ def get_alg(alg):
 
 
 
-class snmp_requests():
+class snmp_engine():
 
     def __init__(self, version, security, ip_addr, port):
 
@@ -147,6 +151,7 @@ class snmp_requests():
 
         errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
         resp = response(errorIndication, errorStatus, errorIndex, varBinds)
+
         return resp
 
 
@@ -160,25 +165,26 @@ class snmp_requests():
         return resp
 
 
-    def snmpbulk(self, nonRepeaters, maxRepetitions, varbinds):
-        pass
+    def snmpbulk(self, nonRepeaters, maxRepetitions, varBinds):
+
+        varBinds = self.parse_varBinds(varBinds)
+        iterator = bulkCmd(SnmpEngine(), self.security, self.transport, ContextData(), nonRepeaters, maxRepetitions *varBinds)
+
+        errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
+        resp = response(errorIndication, errorStatus, errorIndex, varBinds)
+        return resp
 
 
-    # def snmpwalk(self, oid):
-    #     varBinds = [ObjectType(ObjectIdentity(oid))]
-    #
-    #     # Start
-    #     oid = oid.split('.')
-    #     oid2 = oid
-    #     while True:
-    #         response = snmp_engine.snmpgetnext(varBinds)
-    #         varBinds = response.varBinds
-    #         oid2 = str(varBinds[0][0]).split('.')
-    #
-    #         if not((len(oid2) >= len(oid)) and (oid2[1:len(oid)] == oid[1:len(oid)])) or len(response.varBinds) == 0 or response.errorIndication != None:
-    #             break
-    #         response.pretty_print()
+    def snmpwalk(self, oid):
 
+        varBinds = [[oid, None]]
+        varBinds = self.parse_varBinds(varBinds)
+        iterator = nextCmd(SnmpEngine(), self.security, self.transport, ContextData(), *varBinds)
+
+        for errorIndication, errorStatus, errorIndex, varBinds in iterator:
+
+            resp = response(errorIndication, errorStatus, errorIndex, varBinds)
+            resp.pretty_print()
 
 
 
