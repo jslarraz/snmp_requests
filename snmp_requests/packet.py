@@ -124,6 +124,9 @@ class snmp_engine():
                 elif varBind[1][0] == "OID":
                     v.append((ObjectIdentifier(varBind[0]),
                                      ObjectIdentifier(str(varBind[1][1]))))
+                elif varBind[1][0] == "hexValue":
+                    v.append((ObjectIdentifier(varBind[0]),
+                                     OctetString(hexValue=str(varBind[1][1]))))
                 else:
                     v.append((ObjectIdentifier(varBind[0]),
                                      OctetString(str(varBind[1][1]))))

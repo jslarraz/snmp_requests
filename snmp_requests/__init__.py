@@ -1,1 +1,1 @@
-from snmp_requests.packet import *
+from snmp_requests.snmp_engine import *
