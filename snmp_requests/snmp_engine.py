@@ -19,7 +19,7 @@ class snmp_engine():
         elif (version == '3'):
 
             try:
-                self.options = self.options + ["-c", security['username'], "-l", security['level']]
+                self.options = self.options + ["-u", security['username'], "-l", security['level']]
 
                 if (security['level'] == 'authNoPriv') or (security['level'] == 'authPriv'):
                     self.options = self.options + ["-A", security['authKey']]
@@ -35,7 +35,11 @@ class snmp_engine():
 
             except:
                 print("Error en la configuracion de la seguridad en SNMPv3")
+                exit(-1)
 
+        else:
+            print("Unsupported SNMP version")
+            exit(-1)
 
         # Add host
         self.options = self.options + [ip_addr + ":" + str(port) ]
