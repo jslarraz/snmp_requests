@@ -1,8 +1,13 @@
 #from snmp_requests import snmp_engine, response
 from snmp_requests.snmp_engine import snmp_engine
 
-# Create the requests engine
-eng = snmp_engine('2c', 'public', '192.168.1.200', 161)
+# Read config
+import os
+
+ip_addr = os.environ.get('ip_addr', 'localhost')            # Direccion IP
+port = os.environ.get('port', 161)                          # Puerto
+community = os.environ.get('community', 'public')           # Comunidad
+eng = snmp_engine('2c', community, ip_addr, port)
 
 
 # Use the engine to make a couple of requests
