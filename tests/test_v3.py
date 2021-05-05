@@ -10,8 +10,12 @@ user = {
     "privAlg": "DES"
 }
 
-# Create the requests engine
-eng = snmp_engine('3', user, '192.168.1.200', 161)
+# Read config
+import os
+
+ip_addr = os.environ.get('ip_addr', 'localhost')            # Direccion IP
+port = os.environ.get('port', 161)                          # Puerto
+eng = snmp_engine('3', user, ip_addr, port)                 # Create engine
 
 
 # Use the engine to make a couple of requests
@@ -77,7 +81,7 @@ print("")
 
 # Make a set request with one valid varBinds
 print("Make a set request with one valid varBinds")
-resp = eng.snmpset([['1.3.6.1.4.1.28308.1.0', ('STRING', 'test_comm')]])
+resp = eng.snmpset([['1.3.6.1.2.1.1.5.0', ('STRING', 'test_comm')]])
 print(resp)
 print("")
 
@@ -92,7 +96,8 @@ print(r)
 print("")
 
 
-
+print("---------------------------------------NO ACCESS------------------------------------------")
+print("")
 
 user = {
     "username": "Jorge2"

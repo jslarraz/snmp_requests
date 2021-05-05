@@ -1,5 +1,5 @@
 
-from subprocess import run, PIPE
+from subprocess import check_output
 import re
 
 
@@ -80,10 +80,10 @@ class snmp_engine():
         for varBind in varBinds:
             cmd = cmd + [str(varBind[0])]
 
-        resp = run(cmd, stdout=PIPE, stderr=PIPE)
+        resp = check_output(cmd)
 
         v = []
-        for varBind in resp.stdout.decode('utf-8').split('\n')[:-1]:
+        for varBind in resp.decode('utf-8').split('\n')[:-1]:
             oid_resp, type2_resp, val_resp = self.procesa_resp(varBind)
             v.append([oid_resp, (type2_resp, val_resp)])
         return v
@@ -96,10 +96,10 @@ class snmp_engine():
         for varBind in varBinds:
             cmd = cmd + [str(varBind[0])]
 
-        resp = run(cmd, stdout=PIPE, stderr=PIPE)
+        resp = check_output(cmd)
 
         v = []
-        for varBind in resp.stdout.decode('utf-8').split('\n')[:-1]:
+        for varBind in resp.decode('utf-8').split('\n')[:-1]:
             oid_resp, type2_resp, val_resp = self.procesa_resp(varBind)
             v.append([oid_resp, (type2_resp, val_resp)])
         return v
@@ -120,10 +120,10 @@ class snmp_engine():
             else:
                 print("Unknown data type")
 
-        resp = run(cmd, stdout=PIPE, stderr=PIPE)
+        resp = check_output(cmd)
 
         v = []
-        for varBind in resp.stdout.decode('utf-8').split('\n')[:-1]:
+        for varBind in resp.decode('utf-8').split('\n')[:-1]:
             oid_resp, type2_resp, val_resp = self.procesa_resp(varBind)
             v.append([oid_resp, (type2_resp, val_resp)])
         return v
@@ -135,10 +135,10 @@ class snmp_engine():
         for varBind in varBinds:
             cmd = cmd + [str(varBind[0])]
 
-        resp = run(cmd, stdout=PIPE, stderr=PIPE)
+        resp = check_output(cmd)
 
         v = []
-        for varBind in resp.stdout.decode('utf-8').split('\n')[:-1]:
+        for varBind in resp.decode('utf-8').split('\n')[:-1]:
             oid_resp, type2_resp, val_resp = self.procesa_resp(varBind)
             v.append([oid_resp, (type2_resp, val_resp)])
         return v
@@ -149,10 +149,10 @@ class snmp_engine():
         cmd = ["snmpwalk"] + self.options
         cmd = cmd + [oid]
 
-        resp = run(cmd, stdout=PIPE, stderr=PIPE)
+        resp = check_output(cmd)
 
         v = []
-        for varBind in resp.stdout.decode('utf-8').split('\n')[:-1]:
+        for varBind in resp.decode('utf-8').split('\n')[:-1]:
             oid_resp, type2_resp, val_resp = self.procesa_resp(varBind)
             v.append([oid_resp, (type2_resp, val_resp)])
         return v
